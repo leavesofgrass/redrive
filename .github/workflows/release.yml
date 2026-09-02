@@ -1,0 +1,50 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that the tag matches the module version
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = "$env:GITHUB_REF_NAME".TrimStart('v')
+          $version = (Import-PowerShellDataFile src\Redrive.psd1).ModuleVersion
+          if ($tag -ne $version) { Write-Host "tag $tag does not match ModuleVersion $version in src\Redrive.psd1"; exit 1 }
+
+      - name: Parse check and unit tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($f in @(Get-ChildItem src\*.ps1, src\*.psm1, redrive.ps1, build\*.ps1)) {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { Write-Host "$($f.Name): parse errors"; exit 1 }
+          }
+          if (-not (Get-Module -ListAvailable Pester | Where-Object { $_.Version -ge [version]'5.0' })) {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+            Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.5.0
+          }
+          Import-Module Pester -MinimumVersion 5.0 -Force
+          $r = Invoke-Pester -Path tests\Redrive.Tests.ps1 -Output Normal -PassThru
+          if ($r.FailedCount -gt 0) { exit 1 }
+
+      - name: Package the end-user zip
+        shell: powershell
+        run: .\build\Make-Release.ps1
+
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

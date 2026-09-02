@@ -1,0 +1,40 @@
+# redrive fake tablet. Start with Start-FakeTablet.ps1 (it writes .env), or by hand:
+#   REDRIVE_FAKE_HOME=C:/Users/you/AppData/Local/redrive-fake  docker compose up -d --build
+name: redrive-harness
+
+services:
+  fake-tablet:
+    build: .
+    image: redrive-fake-tablet:local
+    container_name: redrive-fake-tablet
+    init: true
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "2222:22"
+      - "8080:80"
+    environment:
+      # public key line(s) for root's authorized_keys; Start-FakeTablet.ps1 writes it to .env
+      FAKE_AUTHORIZED_KEYS: ${FAKE_AUTHORIZED_KEYS:-}
+      FAKE_PROFILE: ${FAKE_PROFILE:-paperpro-3.27}
+      FAKE_LIVE_SCAN: ${FAKE_LIVE_SCAN:-0}
+      FAKE_RESTART_SECONDS: ${FAKE_RESTART_SECONDS:-8}
+      FAKE_STRIP_EXT: ${FAKE_STRIP_EXT:-0}
+      FAKE_UPLOAD_USES_LAST_FOLDER: ${FAKE_UPLOAD_USES_LAST_FOLDER:-0}
+      FAKE_RMDOC_HONORS_PARENT: ${FAKE_RMDOC_HONORS_PARENT:-0}
+      FAKE_DUAL_FRAMING: ${FAKE_DUAL_FRAMING:-0}
+      FAKE_LEGACY_PLACEHOLDER: ${FAKE_LEGACY_PLACEHOLDER:-0}
+    volumes:
+      - xochitl-data:/home/root/.local/share/remarkable/xochitl
+      - dropbear-keys:/etc/dropbear
+      # The host's authorized_keys. Docker Desktop presents a bind-mounted Windows file as
+      # mode 0777 on a read-only mount, which dropbear rejects for ~/.ssh/authorized_keys,
+      # so it is mounted here and copied into place (0600) by entrypoint.sh.
+      - type: bind
+        source: ${REDRIVE_FAKE_HOME:?REDRIVE_FAKE_HOME is not set - run Start-FakeTablet.ps1 (it writes harness/.env)}/authorized_keys
+        target: /opt/fake-tablet/authorized_keys.host
+        read_only: true
+
+volumes:
+  xochitl-data:
+  dropbear-keys:

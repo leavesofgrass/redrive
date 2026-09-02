@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: parse, unit tests, package
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse check and ASCII check (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(Get-ChildItem src\*.ps1, src\*.psm1, src\*.psd1, redrive.ps1, tests\*.ps1, harness\*.ps1, build\*.ps1)
+          $bad = 0
+          foreach ($f in $files) {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { $bad++; Write-Host "$($f.Name): $($errors.Count) parse error(s)"; $errors | ForEach-Object { Write-Host "  line $($_.Extent.StartLineNumber): $($_.Message)" } }
+          }
+          foreach ($f in @(Get-ChildItem src\*.ps1, src\*.psm1, redrive.ps1)) {
+            $nonAscii = @([IO.File]::ReadAllBytes($f.FullName) | Where-Object { $_ -gt 127 }).Count
+            if ($nonAscii) { $bad++; Write-Host "$($f.Name): $nonAscii non-ASCII byte(s) (PowerShell 5.1 reads BOM-less files as ANSI)" }
+          }
+          Write-Host "$($files.Count) files checked, $bad problem(s)"
+          if ($bad) { exit 1 }
+
+      - name: Unit tests (Pester 5)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Module -ListAvailable Pester | Where-Object { $_.Version -ge [version]'5.0' })) {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+            Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.5.0
+          }
+          Import-Module Pester -MinimumVersion 5.0 -Force
+          $r = Invoke-Pester -Path tests\Redrive.Tests.ps1 -Output Detailed -PassThru
+          if ($r.FailedCount -gt 0) { exit 1 }
+
+      - name: Package the end-user zip
+        shell: powershell
+        run: .\build\Make-Release.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: redrive-zip
+          path: dist/*.zip

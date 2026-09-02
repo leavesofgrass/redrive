@@ -1,0 +1,9 @@
+# Files that run inside the Linux container must keep LF line endings on a Windows checkout.
+rmsh text eol=lf
+systemctl text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+.dockerignore text eol=lf
+*.rm binary

@@ -1,0 +1,155 @@
+#!/bin/sh
+# systemctl shim for the fake tablet. Models exactly one unit, xochitl.service:
+#   start | stop | restart | is-active | status | show | reset-failed
+# and the Paper Pro start-rate limit (the 5th start inside a rolling 10-minute window
+# fails the way systemd does; "reset-failed" clears the counter).
+LOG=/home/root/log.txt
+STARTS=/run/fake-xochitl.starts
+STATE=/run/fake-xochitl.state
+SINCE=/run/fake-xochitl.since
+WINDOW=600
+BURST=4
+RESTART_SECONDS=${FAKE_RESTART_SECONDS:-8}
+
+log() { printf '%s systemctl: %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"; }
+
+verb=""
+unit=""
+for a in "$@"; do
+    case "$a" in
+        -*) ;;
+        *)
+            if [ -z "$verb" ]; then verb="$a"
+            elif [ -z "$unit" ]; then unit="$a"
+            fi ;;
+    esac
+done
+
+if [ -z "$verb" ]; then
+    echo "systemctl (fake-tablet shim): missing command verb." >&2
+    exit 1
+fi
+
+case "$verb" in
+    daemon-reload|daemon-reexec)
+        log "$verb (no-op)"
+        exit 0 ;;
+esac
+
+if [ -z "$unit" ]; then
+    echo "Too few arguments." >&2
+    exit 1
+fi
+
+u="${unit%.service}"
+if [ "$u" != "xochitl" ]; then
+    log "$verb $unit -> not found"
+    echo "Unit ${u}.service not found." >&2
+    exit 5
+fi
+
+state() { cat "$STATE" 2>/dev/null || echo inactive; }
+since_text() {
+    s=$(cat "$SINCE" 2>/dev/null || echo "")
+    if [ -n "$s" ]; then
+        printf 'since %s; %ss ago' "$(date -u -d "@$s" '+%a %Y-%m-%d %H:%M:%S UTC' 2>/dev/null || echo "epoch $s")" "$(( $(date +%s) - s ))"
+    fi
+}
+
+prune() {
+    [ -f "$STARTS" ] || return 0
+    n=$(date +%s)
+    awk -v n="$n" -v w="$WINDOW" '($1 + 0) > (n - w)' "$STARTS" > "$STARTS.tmp" && mv -f "$STARTS.tmp" "$STARTS"
+}
+count() {
+    prune
+    if [ -f "$STARTS" ]; then awk 'END { print NR }' "$STARTS"; else echo 0; fi
+}
+
+do_start() {
+    c=$(count)
+    if [ "$c" -ge "$BURST" ]; then
+        log "start refused: $c start(s) in the last ${WINDOW}s (start-limit-hit)"
+        echo "start-limit-hit" > "$STATE.result"
+        echo "Job for xochitl.service failed because start of the service was attempted too often." >&2
+        echo "See \"systemctl status xochitl.service\" and \"journalctl -xeu xochitl.service\" for details." >&2
+        return 1
+    fi
+    date +%s >> "$STARTS"
+    rm -f "$STATE.result"
+    /usr/local/bin/xochitl-fake.sh start
+    log "start ($((c + 1)) start(s) in the current ${WINDOW}s window)"
+    return 0
+}
+
+do_stop() {
+    /usr/local/bin/xochitl-fake.sh stop
+    log "stop"
+}
+
+case "$verb" in
+    start)
+        do_start || exit 1
+        ;;
+    stop)
+        do_stop
+        ;;
+    restart)
+        log "restart: stopping, ${RESTART_SECONDS}s gap, starting"
+        do_stop
+        sleep "$RESTART_SECONDS"
+        do_start || exit 1
+        ;;
+    is-active)
+        s=$(state)
+        echo "$s"
+        [ "$s" = "active" ] && exit 0
+        exit 3
+        ;;
+    status)
+        s=$(state)
+        echo "* xochitl.service - reMarkable main application"
+        echo "     Loaded: loaded (/lib/systemd/system/xochitl.service; enabled; preset: enabled)"
+        if [ "$s" = "active" ]; then
+            echo "     Active: active (running) $(since_text)"
+            echo "   Main PID: $(cat /run/fake-xochitl.pid 2>/dev/null || echo '?') (xochitl)"
+            exit 0
+        fi
+        if [ -f "$STATE.result" ]; then
+            echo "     Active: failed (Result: $(cat "$STATE.result")) $(since_text)"
+        else
+            echo "     Active: inactive (dead) $(since_text)"
+        fi
+        exit 3
+        ;;
+    show)
+        s=$(state)
+        echo "Id=xochitl.service"
+        echo "Names=xochitl.service"
+        echo "Description=reMarkable main application"
+        echo "LoadState=loaded"
+        if [ "$s" = "active" ]; then
+            echo "ActiveState=active"
+            echo "SubState=running"
+            echo "Result=success"
+            echo "MainPID=$(cat /run/fake-xochitl.pid 2>/dev/null || echo 0)"
+        else
+            if [ -f "$STATE.result" ]; then echo "ActiveState=failed"; else echo "ActiveState=inactive"; fi
+            echo "SubState=dead"
+            echo "Result=$(cat "$STATE.result" 2>/dev/null || echo success)"
+            echo "MainPID=0"
+        fi
+        echo "NRestarts=$(count)"
+        echo "StartLimitIntervalUSec=${WINDOW}s"
+        echo "StartLimitBurst=$BURST"
+        ;;
+    reset-failed)
+        rm -f "$STARTS" "$STATE.tmp" "$STATE.result"
+        log "reset-failed (start counter cleared)"
+        ;;
+    *)
+        echo "Unknown command verb $verb." >&2
+        exit 1
+        ;;
+esac
+exit 0

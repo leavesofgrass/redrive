@@ -1,0 +1,20 @@
+# Windows scripts get CRLF, everything that runs inside the Linux harness stays LF.
+* text=auto
+*.ps1  text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf
+*.cmd  text eol=crlf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.py   text eol=lf
+*.sh   text eol=lf
+*.json text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+harness/rmsh text eol=lf
+harness/systemctl text eol=lf
+harness/entrypoint.sh text eol=lf
+harness/xochitl-fake.sh text eol=lf
+*.rm   binary
+*.pdf  binary
+*.png  binary

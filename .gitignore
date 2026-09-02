@@ -1,0 +1,11 @@
+# local state never belongs in the repo
+*.log
+*.tmp
+/state/
+/logs/
+/dist/
+harness/fixtures/rm/*.rm
+harness/.env
+# editor
+.vscode/
+Thumbs.db

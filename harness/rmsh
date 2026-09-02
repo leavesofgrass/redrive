@@ -1,0 +1,6 @@
+#!/bin/sh
+# Login shell for root inside the fake tablet.
+# Every "ssh host 'cmd'" arrives here as "rmsh -c 'cmd'" and runs under BusyBox sh with
+# BusyBox applets first on PATH, so GNU-only flags fail here before they fail on a tablet.
+export PATH=/usr/local/busybox:/usr/local/bin:/usr/bin:/bin
+exec /usr/local/busybox/sh "$@"
