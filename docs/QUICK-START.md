@@ -197,7 +197,7 @@ red, follow the Red row in the table above.
   (two quotation marks with nothing between them). Save and close the file, then sign out of
   Windows and sign in again. R: is gone, the copies are still in the reMarkable folder ("Open
   the reMarkable folder" in the dot's menu), and syncing carries on. Put the R back the same
-  way to get the drive letter again.
+  way to get the drive letter again; running Install again also brings it back.
 - **Remove redrive:** open the redrive folder in File Explorer, click in the address bar at the
   top (the box showing the folder's location), type cmd and press Enter. In the black window
   type redrive.cmd uninstall and press Enter. When it says "redrive removed for this user."

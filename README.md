@@ -42,9 +42,8 @@ That is all. redrive starts with Windows from now on.
   profile. It stays in File Explorer when the tablet is unplugged and shows the last copies, its
   Properties window reports the size and free space of C: because it lives on that disk, and it
   has no Eject entry because there is nothing to eject. In "This PC" look for the name
-  "reMarkable (R:)", or type `R:\` in the address bar. Prefer no drive letter at all? Set
-  `DriveLetter` to an empty string in `config.json` (see docs/TROUBLESHOOTING.md) and sign out
-  and in again; the folder keeps syncing.
+  "reMarkable (R:)", or type `R:\` in the address bar. Hiding the letter or removing redrive is
+  covered under "Pausing, unmounting and removing" below.
 - **Send something to the tablet**: drop a PDF or EPUB into any folder of the drive. It is
   uploaded the next time the tablet is plugged in and awake. Files in `_Inbox` go to the
   tablet's top level.
@@ -69,6 +68,30 @@ Right-click the tray icon and choose **Doctor**. It checks everything from the c
 OneNote and prints the fix next to each problem. `Doctor` in the tray also copies a report to
 the clipboard that you can paste into an email to whoever helps you.
 More in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+## Pausing, unmounting and removing
+
+Run all of this from a normal window, never one opened as administrator: a drive letter made or
+removed by an administrator window belongs to a different session, and Explorer never sees it.
+
+- **Pause**: right-click the tray icon and choose *Pause syncing*; *Resume syncing* or *Sync now*
+  starts it again. *Exit* stops redrive until the next sign-in, as does `redrive.cmd tray -Stop`.
+- **Unmount R: for the moment**: `redrive.cmd unmount`. Nothing is copied or deleted; the folder
+  stays where it is. The tray maps the letter again before its next sync, so this is a pause,
+  not a setting.
+- **Run without a drive letter**: in `%LOCALAPPDATA%\redrive\config.json` set `DriveLetter` to
+  `""`, then sign out of Windows and back in. Without signing out: `redrive.cmd tray -Stop`,
+  `redrive.cmd unmount`, edit the file, `redrive.cmd tray`. The tray's *Open the reMarkable
+  folder* then opens the plain folder, and syncing is unchanged. Set the letter back the same
+  way; running Install again also picks a letter again.
+- **Uninstall**: `redrive.cmd uninstall` from the redrive folder. It stops the tray, removes the
+  autostart entry and the drive letter, and deletes redrive's own files under
+  `%LOCALAPPDATA%\redrive`: program copy, launcher, key, settings, state and logs. It keeps the
+  `reMarkable` folder with every PDF copy, any backups under `%LOCALAPPDATA%\redrive\backup`,
+  and the folder you unzipped; delete those yourself if you want them gone. Nothing on the
+  tablet changes. Two switches: `-KeepData` keeps settings, key, state and logs so a later
+  Install needs no password; `-RemoveKeyFromTablet` also removes redrive's login key from the
+  tablet (plug it in and wake it first, otherwise that step is skipped quietly).
 
 ## Command line
 
