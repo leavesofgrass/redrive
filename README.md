@@ -10,9 +10,9 @@ It is a set of Windows PowerShell scripts. Nothing else needs to be installed.
 
 New to all of this? Start with the step-by-step [Quick Start](docs/QUICK-START.md).
 
-**Status:** version 0.1.0. Built and tested against a simulated tablet and a real OneNote; it
-has not yet been run on a real reMarkable. If you have one, [docs/FIELD-TEST.md](docs/FIELD-TEST.md)
-is the checklist, and the results are the most useful thing you can contribute right now.
+**Status:** version 0.1.0. Built against a simulated tablet and a real OneNote, then tested on a
+real reMarkable, where it works. Reports from other tablet models are welcome:
+[docs/FIELD-TEST.md](docs/FIELD-TEST.md) is the checklist.
 
 **Download:** grab `redrive-<version>.zip` from the Releases page (or build it yourself with
 `build\Make-Release.ps1`), unzip it, and follow the Quick Start.
