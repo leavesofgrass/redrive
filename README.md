@@ -38,6 +38,13 @@ That is all. redrive starts with Windows from now on.
 
 - **The reMarkable drive (R:)** shows the tablet's folders and documents as PDF files, handwriting
   included. They are read-only copies; the tablet is the original.
+- **R: is a folder, not a device.** It is a second name for the `reMarkable` folder in your user
+  profile. It stays in File Explorer when the tablet is unplugged and shows the last copies, its
+  Properties window reports the size and free space of C: because it lives on that disk, and it
+  has no Eject entry because there is nothing to eject. In "This PC" look for the name
+  "reMarkable (R:)", or type `R:\` in the address bar. Prefer no drive letter at all? Set
+  `DriveLetter` to an empty string in `config.json` (see docs/TROUBLESHOOTING.md) and sign out
+  and in again; the folder keeps syncing.
 - **Send something to the tablet**: drop a PDF or EPUB into any folder of the drive. It is
   uploaded the next time the tablet is plugged in and awake. Files in `_Inbox` go to the
   tablet's top level.
@@ -50,6 +57,9 @@ That is all. redrive starts with Windows from now on.
 - **The tray icon**: grey = tablet not plugged in, yellow = tablet asleep (tap it),
   blue = syncing, green = up to date, orange = something needs attention, red = run Setup again.
   Right-click it for *Sync now*, *Doctor*, the log and *Pause*.
+- **Unplugging**: wait until the dot is green, then pull the cable. There is no Eject or
+  "Safely Remove Hardware" step: the tablet is not a USB stick, it talks to the PC over a small
+  USB network connection, and R: is not the tablet.
 - **Deleting**: deleting a file from the drive does not delete it on the tablet (it comes back
   on the next sync). Delete on the tablet; the copy on the PC then moves to the Recycle Bin.
 
@@ -63,7 +73,7 @@ More in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 ## Command line
 
 From the redrive folder: `redrive.cmd status`, `sync`, `doctor -Report`, `ssh`, `backup`,
-`logs`, `mount`, `tray -Stop`, `uninstall`. `redrive.cmd help` lists them all.
+`logs`, `mount`, `unmount`, `tray -Stop`, `uninstall`. `redrive.cmd help` lists them all.
 
 ## How it works, in one paragraph
 

@@ -6,7 +6,7 @@ handwriting you add on the tablet back into OneNote. Everything travels through 
 Nothing goes over the internet.
 
 You set it up once, in about ten minutes. After that the routine is: plug in, tap the tablet,
-unplug when you leave.
+unplug when you leave. There is nothing to eject first.
 
 redrive is new. Until it has run on your tablet for a while, keep your own copies of any notes
 you cannot afford to lose.
@@ -72,7 +72,9 @@ you cannot afford to lose.
    by itself every time you sign in to Windows.
 8. Look next to the clock at the bottom right of the screen. A small coloured dot has
    appeared: that is redrive. (If it is hidden, click the small up-arrow next to the clock.)
-   In File Explorer, under "This PC", there is now a drive usually called "reMarkable (R:)".
+   In File Explorer, under "This PC", there is now a drive usually called "reMarkable (R:)",
+   listed next to your PC's own drive (C:). The name and the letter R tell them apart; the
+   section "The reMarkable drive" below explains what it is.
 9. Now open OneNote. Every page of every notebook that is open in OneNote will go to the
    tablet, a batch every few minutes. A large set of notebooks can take an hour or more the
    first time. If there are notebooks you do not want on the tablet, close them in OneNote
@@ -98,7 +100,20 @@ Whenever a message says "Setup", it means the Install file.
 
 Open File Explorer (the yellow folder icon) and click "This PC". The drive usually called
 "reMarkable (R:)" holds the tablet's folders and documents as PDF files, handwriting included.
-Three rules:
+
+**R: is a folder, not a device.** redrive keeps the copies in a folder called reMarkable in
+your user profile and asks Windows to show that folder a second time, as drive R:, so it is
+easy to find. Four things follow from that:
+
+- R: stays in "This PC" when the tablet is unplugged. It then shows the copies from the last
+  sync, and the dot says "Tablet unplugged - R: shows the last copy".
+- Right-click R:, choose Properties, and the window shows the size and free space of C:. That
+  is normal, not a fault: R: lives on the same disk as C:.
+- R: has no "Eject" entry and never needs one. Nothing is plugged into R:.
+- To be sure you are looking at R: and not C:, read the name in "This PC" ("reMarkable (R:)"),
+  or click in the address bar at the top of File Explorer, type R:\ and press Enter.
+
+Three rules for using it:
 
 1. **The copies are read-only.** The tablet is the original. Open, read and print the PDFs.
    Do not save a changed PDF over a copy. If you do, redrive treats it as a replacement: the
@@ -146,9 +161,12 @@ two minutes since you last wrote on the tablet, and never more than twice in ten
 tablet's screen goes blank for about ten seconds and the dot says "reMarkable app restarting
 (about 10 s)". That is normal.
 
-**Evening.** Wait until the dot is green (blue means give it a minute), then unplug. If
-something was still waiting to go over, a bubble "... item(s) are waiting for the tablet -
-plug it in and tap it to wake it." appears later. It is a reminder, not an error.
+**Evening.** Wait until the dot is green (blue means give it a minute), then unplug. That is
+the whole disconnect. There is no Eject button and no "Safely Remove Hardware" step: the tablet
+is not a USB stick, it talks to the PC over a small USB network connection, and R: is not the
+tablet; it stays in "This PC" and shows the last copies. If something was still waiting to go
+over, a bubble "... item(s) are waiting for the tablet - plug it in and tap it to wake it."
+appears later. It is a reminder, not an error.
 
 **After a tablet software update.** redrive normally reconnects by itself. If the dot turns
 red, follow the Red row in the table above.
@@ -165,6 +183,8 @@ red, follow the Red row in the table above.
    "USB web interface" is on. Then unplug the cable and plug it back in.
 4. No dot at all? Sign out of Windows and sign in again (or restart the PC). The dot appears
    about 20 seconds after you sign in.
+5. R: looks like a copy of C:, or you cannot find a way to eject it? That is how R: works (see
+   "The reMarkable drive" above). Nothing is broken, and there is no need to run Install again.
 
 ## Pausing and removing
 
@@ -172,8 +192,14 @@ red, follow the Red row in the table above.
   "Sync now" to start again.
 - **Stop for now:** right-click the dot and choose "Exit". It starts again next time you sign
   in.
+- **Work without the R: drive:** right-click the dot and choose "Settings file". In the file
+  that opens, find the line that starts with "DriveLetter" and change the "R" at its end to ""
+  (two quotation marks with nothing between them). Save and close the file, then sign out of
+  Windows and sign in again. R: is gone, the copies are still in the reMarkable folder ("Open
+  the reMarkable folder" in the dot's menu), and syncing carries on. Put the R back the same
+  way to get the drive letter again.
 - **Remove redrive:** open the redrive folder in File Explorer, click in the address bar at the
   top (the box showing the folder's location), type cmd and press Enter. In the black window
   type redrive.cmd uninstall and press Enter. When it says "redrive removed for this user."
-  close the window. The PDF copies in the reMarkable folder stay on your PC, and nothing on the
-  tablet is changed.
+  close the window. The R: drive disappears with it. The PDF copies in the reMarkable folder
+  stay on your PC, and nothing on the tablet is changed.
