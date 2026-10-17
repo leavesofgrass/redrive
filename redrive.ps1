@@ -12,7 +12,7 @@
 #   redrive.ps1 tray [-Stop]     the tray icon
 #   redrive.ps1 window           apply staged tablet changes now (restarts the tablet app)
 #   redrive.ps1 mount-raw|unmount-raw   optional raw mount (troubleshooting)
-#   redrive.ps1 uninstall [-KeepData]
+#   redrive.ps1 uninstall [-KeepData] [-RemoveKeyFromTablet]   (the switch undoes redrive's changes on the tablet)
 #
 param(
     [Parameter(Position = 0)][string]$Verb = 'help',

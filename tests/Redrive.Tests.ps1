@@ -162,6 +162,39 @@ Describe 'Restart budget' {
     }
 }
 
+Describe 'Web interface switch-off' {
+    It 'does nothing when the setting is already off' {
+        Mock -ModuleName Redrive Invoke-RedriveSsh { @{ ExitCode = 1; StdOut = "0`n"; StdErr = '' } }
+        Mock -ModuleName Redrive Invoke-RedriveSshScript { @{ ExitCode = 0; StdOut = 'WEB_DISABLED'; StdErr = '' } }
+        $r = Disable-RedriveWebInterface -Force
+        $r.Ok | Should -BeTrue
+        $r.Changed | Should -BeFalse
+        Should -Invoke -ModuleName Redrive Invoke-RedriveSshScript -Times 0 -Exactly
+    }
+    It 'reports a tablet that does not answer instead of calling the setting off' {
+        Mock -ModuleName Redrive Invoke-RedriveSsh { @{ ExitCode = 255; StdOut = ''; StdErr = 'ssh: connect to host 10.11.99.1 port 22: Connection timed out' } }
+        Mock -ModuleName Redrive Invoke-RedriveSshScript { @{ ExitCode = 0; StdOut = 'WEB_DISABLED'; StdErr = '' } }
+        $r = Disable-RedriveWebInterface -Force
+        $r.Ok | Should -BeFalse
+        $r.Changed | Should -BeFalse
+        $r.Reason | Should -Match 'timed out'
+        Should -Invoke -ModuleName Redrive Invoke-RedriveSshScript -Times 0 -Exactly
+    }
+    It 'sets WebInterfaceEnabled=false around a restart of the tablet app' {
+        Mock -ModuleName Redrive Invoke-RedriveSsh { @{ ExitCode = 0; StdOut = "1`n"; StdErr = '' } }
+        Mock -ModuleName Redrive Invoke-RedriveSshScript { @{ ExitCode = 0; StdOut = "WEB_DISABLED`n"; StdErr = '' } }
+        $r = Disable-RedriveWebInterface -Force
+        $r.Ok | Should -BeTrue
+        $r.Changed | Should -BeTrue
+        Should -Invoke -ModuleName Redrive Invoke-RedriveSshScript -Times 1 -Exactly -ParameterFilter {
+            $Script -match 'WebInterfaceEnabled=false' -and $Script -match 'systemctl stop xochitl' -and $Script -match 'systemctl start xochitl'
+        }
+    }
+    It 'defaults the bookkeeping flag to off' {
+        (Get-RedriveConfig -Reload).WebInterfaceEnabledBySetup | Should -BeFalse
+    }
+}
+
 Describe 'Log rotation' {
     It 'rotates when the file grows past the limit' {
         $c = Get-RedriveConfig -Reload

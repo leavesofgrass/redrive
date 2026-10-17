@@ -291,7 +291,11 @@ function Invoke-RedriveSetup {
             if ($info.web_enabled -notmatch '^[1-9]') {
                 Write-Host '    Turning on the tablet web interface (the tablet app restarts once, about 10 seconds)...' -ForegroundColor DarkGray
                 $w = Enable-RedriveWebInterface -Force
-                if ($w.Ok) { Write-RedriveSetupOk 'web interface enabled' } else { Write-RedriveSetupWarn "could not enable the web interface: $($w.Reason) (enable it on the tablet under Settings > Storage)" }
+                if ($w.Ok) {
+                    Write-RedriveSetupOk 'web interface enabled'
+                    if ($w.Changed) { $cfg.WebInterfaceEnabledBySetup = $true; Save-RedriveConfig $cfg }   # remembered so that uninstall can turn it off again
+                }
+                else { Write-RedriveSetupWarn "could not enable the web interface: $($w.Reason) (enable it on the tablet under Settings > Storage)" }
             }
             else { Write-RedriveSetupOk 'web interface already enabled' }
         }
@@ -339,7 +343,25 @@ function Uninstall-Redrive {
     Unregister-RedriveAutostart
     Dismount-RedriveDrive | Out-Null
     if ($RemoveKeyFromTablet) {
-        try { Invoke-RedriveSsh -Command "sed -i '/redrive-$env:COMPUTERNAME/d' /home/root/.ssh/authorized_keys" -TimeoutSec 20 | Out-Null } catch { }
+        # undo what Setup did on the tablet: the web interface first (only if Setup turned it on), then the login key
+        $probe = Test-RedriveDevice
+        if (-not $probe.Reachable) {
+            Write-RedriveSetupWarn "The tablet is not reachable ($($probe.State)): its web interface and redrive's key are left as they are. Plug it in, wake it and run uninstall -RemoveKeyFromTablet again."
+        }
+        else {
+            $cfg = Get-RedriveConfig
+            if ([bool]$cfg.WebInterfaceEnabledBySetup) {
+                try {
+                    $w = Disable-RedriveWebInterface -Force
+                    if ($w.Changed) { Write-RedriveSetupOk 'tablet web interface turned back off (Setup had turned it on)' }
+                    elseif (-not $w.Ok) { Write-RedriveSetupWarn "could not turn the tablet web interface back off: $($w.Reason) (turn it off on the tablet under Settings > Storage)" }
+                }
+                catch { Write-RedriveSetupWarn "could not turn the tablet web interface back off: $($_.Exception.Message)" }
+            }
+            $r = $null
+            try { $r = Invoke-RedriveSsh -Command "sed -i '/redrive-$env:COMPUTERNAME/d' /home/root/.ssh/authorized_keys" -TimeoutSec 20 } catch { }
+            if ($r -and $r.ExitCode -eq 0) { Write-RedriveSetupOk 'redrive key removed from the tablet' } else { Write-RedriveSetupWarn 'could not remove the key from the tablet' }
+        }
     }
     $p = Get-RedrivePaths
     if (-not $KeepData) {
