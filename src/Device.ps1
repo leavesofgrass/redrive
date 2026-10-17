@@ -508,3 +508,39 @@ echo START_TIMEOUT; exit 12
     }
     return @{ Changed = $false; Ok = $false; Reason = ($r.StdOut.Trim() + ' ' + $r.StdErr.Trim()).Trim() }
 }
+
+function Disable-RedriveWebInterface {
+    <# Turns the USB web interface back off in xochitl.conf (only while xochitl is stopped). Counts as one restart.
+       The undo for Enable-RedriveWebInterface; uninstall calls it when Setup was the one that turned it on. #>
+    param([switch]$Force)
+    $conf = '/home/root/.config/remarkable/xochitl.conf'
+    $chk = Invoke-RedriveSsh -Command "grep -c '^WebInterfaceEnabled=true' $conf 2>/dev/null" -TimeoutSec 20
+    $count = $chk.StdOut.Trim()
+    if ($count -notmatch '^\d+$') {
+        # grep -c prints a number even when it exits 1 (no match); anything else means the tablet did not answer
+        return @{ Changed = $false; Ok = $false; Reason = ('the tablet did not answer: ' + ($chk.StdOut.Trim() + ' ' + $chk.StdErr.Trim()).Trim()).Trim() }
+    }
+    if ($count -notmatch '^[1-9]') { return @{ Changed = $false; Ok = $true; Reason = 'already off' } }
+    if (-not $Force) {
+        $b = Test-RedriveRestartBudget
+        if (-not $b.Allowed) { return @{ Changed = $false; Ok = $false; Reason = $b.Reason } }
+    }
+    $script = @"
+C='$conf'
+systemctl reset-failed xochitl 2>/dev/null
+systemctl stop xochitl || { echo STOP_FAILED; exit 10; }
+sleep 1
+sed -i 's/^WebInterfaceEnabled=.*/WebInterfaceEnabled=false/' "`$C"
+sync
+systemctl start xochitl || { echo START_FAILED; exit 11; }
+i=0; while [ `$i -lt 40 ]; do systemctl is-active xochitl >/dev/null 2>&1 && { echo WEB_DISABLED; exit 0; }; sleep 1; i=`$((i+1)); done
+echo START_TIMEOUT; exit 12
+"@
+    Register-RedriveRestart
+    $r = Invoke-RedriveSshScript -Script $script -TimeoutSec 180
+    if ($r.StdOut -match 'WEB_DISABLED') {
+        Write-RedriveLog -Level Info -Component 'device' -Message 'USB web interface turned back off in xochitl.conf'
+        return @{ Changed = $true; Ok = $true; Reason = '' }
+    }
+    return @{ Changed = $false; Ok = $false; Reason = ($r.StdOut.Trim() + ' ' + $r.StdErr.Trim()).Trim() }
+}

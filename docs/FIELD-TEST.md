@@ -109,6 +109,16 @@ and whether Windows re-enumerates the USB adapter. Record the Battery settings o
 Let the tray run for a full evening: OneNote pages exported in their folders on the tablet,
 handwriting on them, next morning the images on the pages and the tablet copies refreshed.
 
+## 12. Uninstall
+
+Only on a tablet whose web interface was off before redrive (section 2 records it). After
+Install, `%LOCALAPPDATA%\redrive\config.json` should contain `"WebInterfaceEnabledBySetup": true`.
+Then run `.\redrive.cmd uninstall -RemoveKeyFromTablet -KeepData`: the window should report the
+web interface turned back off and the key removed, the tablet's screen goes blank once (about
+ten seconds), Settings > Storage on the tablet shows "USB web interface" off again, and
+`.\redrive.cmd ssh true` now fails because the key is gone. Record how long the restart took.
+Run Install again afterwards if you carry on testing.
+
 ## Results
 
 | # | Item | Result |
@@ -125,6 +135,7 @@ handwriting on them, next morning the images on the pages and the tablet copies 
 | 9 | trash by metadata works | |
 | 10 | sleep after / wake after / adapter re-enumerated | |
 | 11 | overnight loop | |
+| 12 | web interface off again / key gone / restart seconds | |
 
 If something differs from what redrive assumed, the switches in `%LOCALAPPDATA%\redrive\config.json`
 (`DownloadFormats`, `PushStrategy`, `ReplacePolicy`, `RetireMode`, `ScpLegacyProtocol`) are the

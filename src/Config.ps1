@@ -14,6 +14,7 @@ $script:RedriveDefaults = @{
     KeyPath                   = ''            # resolved to <home>\keys\id_redrive when empty
     UsbSubnet                 = '10.11.99.'   # empty string disables the adapter check (harness)
     Harness                   = $false
+    WebInterfaceEnabledBySetup = $false      # Install turned the tablet web interface on; uninstall -RemoveKeyFromTablet turns it off again
     Probe                     = @{ TimeoutMs = 1500; FastSeconds = 3; SlowSeconds = 10; FastWindowSeconds = 120; ConnectedSeconds = 5 }
     SyncIntervalMinutes       = 5
     NudgeAfterMinutes         = 30

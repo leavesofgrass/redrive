@@ -29,6 +29,8 @@ Each line ends with a fix. The report is copied to the clipboard for you to past
   Developer mode was turned off and on). Run Install.cmd again.
 - **USB web interface**: Install.cmd turns it on; you can also enable it on the tablet under
   Settings > Storage. Without it, documents still sync but without handwriting.
+  `redrive.cmd uninstall -RemoveKeyFromTablet` turns it back off again, but only if Install was
+  the one that turned it on.
 - **Tablet restart budget**: informational. redrive waits before restarting the tablet app again;
   queued changes are applied at the next quiet moment.
 - **Drive R: shows the mirror** failing because the letter is in use: edit
