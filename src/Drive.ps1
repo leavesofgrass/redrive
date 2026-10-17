@@ -1,6 +1,8 @@
 # Drive.ps1 - the drive letter for the mirror folder (subst), plus the optional raw mount (ASCII only)
 
 $script:RedriveDosDeviceType = $null
+$script:RedriveDriveIconsRoot = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\DriveIcons'
+$script:RedriveDriveLabel = 'reMarkable'
 
 function Get-RedriveDosDevice {
     <# Returns the target of a DOS device name such as 'R:' (what subst points at), or $null. Never touches the network. #>
@@ -75,15 +77,36 @@ function Find-RedriveFreeDriveLetter {
 
 function Set-RedriveDriveLabel {
     <# Cosmetic: name the drive 'reMarkable' in Explorer via the per-user DriveIcons key (harmless if ignored). #>
-    $cfg = Get-RedriveConfig
-    $letter = [string]$cfg.DriveLetter
-    if (-not $letter) { return }
+    param([string]$Letter = '', [string]$KeyRoot = $script:RedriveDriveIconsRoot)
+    if (-not $Letter) { $Letter = [string](Get-RedriveConfig).DriveLetter }
+    if (-not $Letter) { return }
     try {
-        $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\DriveIcons\$letter\DefaultLabel"
+        $key = Join-Path (Join-Path $KeyRoot $Letter) 'DefaultLabel'
         if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
-        Set-ItemProperty -Path $key -Name '(default)' -Value 'reMarkable' | Out-Null
+        Set-ItemProperty -Path $key -Name '(default)' -Value $script:RedriveDriveLabel | Out-Null
     }
     catch { Write-RedriveLog -Level Debug -Component 'drive' -Message "drive label not set: $($_.Exception.Message)" }
+}
+
+function Remove-RedriveDriveLabel {
+    <# Undoes Set-RedriveDriveLabel. Removes the label only while it is still the one redrive wrote, and the
+       letter's key only when nothing else is left under it. Returns $true when a label was removed. #>
+    param([string]$Letter = '', [string]$KeyRoot = $script:RedriveDriveIconsRoot)
+    if (-not $Letter) { $Letter = [string](Get-RedriveConfig).DriveLetter }
+    if (-not $Letter) { return $false }
+    try {
+        $letterKey = Join-Path $KeyRoot $Letter
+        $labelKey = Join-Path $letterKey 'DefaultLabel'
+        if (-not (Test-Path $labelKey)) { return $false }
+        $current = [string](Get-ItemProperty -Path $labelKey -ErrorAction SilentlyContinue).'(default)'
+        if ($current -ne $script:RedriveDriveLabel) { return $false }
+        Remove-Item -Path $labelKey -Force
+        $left = Get-Item -Path $letterKey
+        if ($left.SubKeyCount -eq 0 -and $left.ValueCount -eq 0) { Remove-Item -Path $letterKey -Force }
+        Write-RedriveLog -Level Info -Component 'drive' -Message "removed the Explorer label for $Letter`:"
+        return $true
+    }
+    catch { Write-RedriveLog -Level Debug -Component 'drive' -Message "drive label not removed: $($_.Exception.Message)"; return $false }
 }
 
 # ---------------------------------------------------------------- optional raw mount (SSHFS-Win or rclone)

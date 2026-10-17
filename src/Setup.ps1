@@ -338,6 +338,7 @@ function Uninstall-Redrive {
     Stop-RedriveTray | Out-Null
     Unregister-RedriveAutostart
     Dismount-RedriveDrive | Out-Null
+    Remove-RedriveDriveLabel | Out-Null
     if ($RemoveKeyFromTablet) {
         try { Invoke-RedriveSsh -Command "sed -i '/redrive-$env:COMPUTERNAME/d' /home/root/.ssh/authorized_keys" -TimeoutSec 20 | Out-Null } catch { }
     }
