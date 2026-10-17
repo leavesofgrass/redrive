@@ -173,3 +173,33 @@ Describe 'Log rotation' {
         (Test-Path "$($p.LogFile).1") | Should -BeTrue
     }
 }
+
+Describe 'Drive label' {
+    # Registry only; skipped where there is none (the pure tests above still run there).
+    $onWindows = [Environment]::OSVersion.Platform -eq 'Win32NT'
+    BeforeAll {
+        $script:onWindows = [Environment]::OSVersion.Platform -eq 'Win32NT'
+        $script:labelRoot = 'HKCU:\Software\redrive-tests\' + [guid]::NewGuid().ToString('n')
+    }
+    AfterAll {
+        if ($script:onWindows -and (Test-Path $script:labelRoot)) { Remove-Item $script:labelRoot -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+    It 'writes the Explorer label and takes it away again' -Skip:(-not $onWindows) {
+        Set-RedriveDriveLabel -Letter 'Q' -KeyRoot $script:labelRoot
+        (Get-ItemProperty -Path "$($script:labelRoot)\Q\DefaultLabel").'(default)' | Should -Be 'reMarkable'
+        Remove-RedriveDriveLabel -Letter 'Q' -KeyRoot $script:labelRoot | Should -BeTrue
+        Test-Path "$($script:labelRoot)\Q" | Should -BeFalse
+        Remove-RedriveDriveLabel -Letter 'Q' -KeyRoot $script:labelRoot | Should -BeFalse
+    }
+    It 'leaves a label it did not write, and other settings under the letter' -Skip:(-not $onWindows) {
+        New-Item -Path "$($script:labelRoot)\W\DefaultLabel" -Force | Out-Null
+        Set-ItemProperty -Path "$($script:labelRoot)\W\DefaultLabel" -Name '(default)' -Value 'Mine'
+        Remove-RedriveDriveLabel -Letter 'W' -KeyRoot $script:labelRoot | Should -BeFalse
+        (Get-ItemProperty -Path "$($script:labelRoot)\W\DefaultLabel").'(default)' | Should -Be 'Mine'
+        Set-RedriveDriveLabel -Letter 'X' -KeyRoot $script:labelRoot
+        New-Item -Path "$($script:labelRoot)\X\DefaultIcon" -Force | Out-Null
+        Remove-RedriveDriveLabel -Letter 'X' -KeyRoot $script:labelRoot | Should -BeTrue
+        Test-Path "$($script:labelRoot)\X\DefaultLabel" | Should -BeFalse
+        Test-Path "$($script:labelRoot)\X\DefaultIcon" | Should -BeTrue
+    }
+}
